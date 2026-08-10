@@ -1,5 +1,6 @@
 using System.Text.Json;
 using StoatFM.Models;
+using StoatSharp;
 
 namespace StoatFM.Services;
 
@@ -18,6 +19,41 @@ public class LastFMClient : IDisposable
       ?? throw new MissingFieldException("No LastFM API key provided.");
 
     Key = key;
+  }
+
+  public async Task<UserExists> UserExistAsync(string user)
+  {
+    try
+    {
+      using HttpResponseMessage response = await Client.GetAsync($"?method=user.getinfo&user={user}&api_key={Key}&format=json");
+
+      string json = await response.Content.ReadAsStringAsync();
+
+      if (!response.IsSuccessStatusCode)
+      {
+        JsonDocument document = JsonDocument.Parse(json);
+
+        if (document.RootElement.TryGetProperty("error", out JsonElement errorAttribute))
+        {
+          int code = errorAttribute.GetInt32();
+          string message = string.Empty;
+
+          message = code switch
+          {
+            6 => "The username provided does not exist.",
+            _ => "Could not contant the LastFM API.",
+          };
+
+          return new UserExists(false, message);
+        }
+      }
+
+      return new UserExists(true, "");
+    }
+    catch (HttpRequestException e)
+    {
+      return new UserExists(false, e.Message);
+    }
   }
 
   /// <summary>

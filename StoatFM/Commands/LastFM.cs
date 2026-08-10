@@ -9,32 +9,36 @@ namespace StoatFM.Commands;
 public class LastFM(LastFMClient fm, IDbContextFactory<SQLite> factory) : ModuleBase
 {
   [Command("fm")]
-  public async Task Fm()
+  public async Task Fm(string? other = null)
   {
-    if (Context is null || Context.User is null)
-      return;
+    if (Context is null || Context.User is null) return;
 
     using SQLite db = await factory.CreateDbContextAsync();
 
-    FMUser? user = await db.GetUserAsync(Context.User.Id);
+    string id = Context.User.Id;
+    if (other is not null) id = other[2..^1];
+
+    FMUser? user = await db.GetUserAsync(id);
     if (user is null)
     {
+      if (id != Context.User.Id)
+      {
+        await ReplyAsync("The user specified does not have a LastFM username set!");
+        return;
+      }
+
       await ReplyAsync("You have not set your LastFM username! Please use .register <name>.");
       return;
     }
 
     RecentTrack recent = await fm.GetRecentTrackAsync(user.UserName);
-
     if (!recent.Success)
     {
       await ReplyAsync(recent.What);
       return;
     }
 
-    // Ignoring image because they're fugly in stoat embeds :(
-
     string name = $"{Context.User.CurrentName}#{Context.User.Discriminator}";
-
     EmbedBuilder track = new EmbedBuilder
     {
       Title = $"{recent.Name}     ",
@@ -49,6 +53,13 @@ public class LastFM(LastFMClient fm, IDbContextFactory<SQLite> factory) : Module
   public async Task Register(string username)
   {
     if (Context is null || Context.User is null) return;
+
+    UserExists userdata = await fm.UserExistAsync(username);
+    if (!userdata.Success)
+    {
+      await ReplyAsync(userdata.What);
+      return;
+    }
 
     using SQLite db = await factory.CreateDbContextAsync();
 
