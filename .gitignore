@@ -5,3 +5,9 @@ riderModule.iml
 /_ReSharper.Caches/
 .idea/
 .vs/
+
+*.db
+*.db-shm
+*.db-wal
+
+Migrations/

@@ -16,7 +16,7 @@ public class StoatFMClient(ILogger<StoatFMClient> logger, IConfiguration config,
   public async Task StartAsync(CancellationToken cancellationToken)
   {
     string? token = config["Token"]
-      ?? throw new InvalidOperationException("No Token provided.");
+      ?? throw new MissingFieldException("No Token provided.");
 
     await client.LoginAsync(token, AccountType.Bot);
 

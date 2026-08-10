@@ -1,10 +1,11 @@
 using System.Reflection;
+using Optionals;
 using StoatSharp;
 using StoatSharp.Commands;
 
 namespace StoatFM.Services;
 
-public class CommandHandler(ILogger<CommandHandler> logger, StoatClient client, CommandService commands, IServiceProvider services, string prefix = "!")
+public class CommandHandler(ILogger<CommandHandler> logger, StoatClient client, CommandService commands, IServiceProvider services, string prefix = ".")
 {
   public string Prefix { get; } = prefix;
 
@@ -24,11 +25,20 @@ public class CommandHandler(ILogger<CommandHandler> logger, StoatClient client, 
     await commands.ExecuteAsync(ctx, pos, services);
   }
 
+  private async void CommandExecuted(Optional<CommandInfo> info, CommandContext ctx, IResult result)
+  {
+    if (!result.IsSuccess)
+    {
+      await ctx.Channel.SendMessageAsync($"{result.ErrorReason}");
+    }
+  }
+
   public async Task LoadAsync()
   {
     client.OnMessageRecieved += MessageRecieved;
+    commands.OnCommandExecuted += CommandExecuted;
 
     var loaded = await commands.AddModulesAsync(Assembly.GetEntryAssembly() ?? throw new Exception(), services);
-    logger.LogInformation("Loaded {} command{}.", loaded.Count(), loaded.Count() == 1 ? "" : "s");
+    logger.LogInformation("Loaded {} module{}.", loaded.Count(), loaded.Count() == 1 ? "" : "s");
   }
 }

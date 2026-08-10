@@ -2,7 +2,7 @@ using StoatSharp.Commands;
 
 namespace StoatFM.Commands;
 
-public class Testing : ModuleBase
+public class Text : ModuleBase
 {
   [Command("ping")]
   public async Task Ping()
